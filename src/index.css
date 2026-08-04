@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+* { -webkit-tap-highlight-color: transparent; }
+
+html, body, #root { height: 100%; }
+
+body {
+  @apply bg-ink-950 text-slate-200 font-sans antialiased;
+  background-image:
+    radial-gradient(60rem 60rem at 80% -10%, rgba(6,224,149,0.10), transparent 60%),
+    radial-gradient(50rem 50rem at -10% 20%, rgba(34,211,238,0.08), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection { background: rgba(6,224,149,0.3); color: #fff; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  .glass-strong {
+    @apply bg-white/[0.07] backdrop-blur-2xl border border-white/10;
+  }
+  .card {
+    @apply glass rounded-2xl shadow-card;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-5 py-3 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-400 text-ink-950 hover:bg-brand-300 hover:shadow-glow active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn text-slate-200 hover:bg-white/5 active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply btn border border-white/15 text-slate-100 hover:bg-white/5 active:scale-[0.98];
+  }
+  .input {
+    @apply w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-slate-100 placeholder-slate-500
+      focus:outline-none focus:ring-2 focus:ring-brand-400/60 focus:border-transparent transition;
+  }
+  .label { @apply block text-sm font-medium text-slate-300 mb-1.5; }
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium; }
+  .section-title { @apply font-display text-3xl sm:text-4xl font-bold tracking-tight text-white; }
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-300 via-brand-400 to-accent-400;
+  }
+  .skeleton {
+    @apply rounded-xl bg-white/5;
+    background-image: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0) 100%);
+    background-size: 1000px 100%;
+    @apply animate-shimmer;
+  }
+}
