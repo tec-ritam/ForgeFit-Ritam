@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, Sparkles, Camera, TrendingUp, TrendingDown, Minus, FileText, Loader2, AlertTriangle, History, Dumbbell, Weight } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useToast } from '../lib/toast'
 import { type ProgressPhoto } from '../lib/types'
@@ -70,12 +70,12 @@ export default function AiAnalysis() {
     setError(null)
 
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-physique-analysis`
+      const apiUrl = `${SUPABASE_URL}/functions/v1/ai-physique-analysis`
       const res = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${session?.access_token ?? SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({ photoUrl: selected.photo_url }),
       })
