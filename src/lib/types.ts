@@ -6,7 +6,6 @@ export interface Workout {
   muscle_group: string | null
   notes: string | null
   completed: boolean
-  created_at: string
 }
 
 export interface Exercise {
@@ -19,7 +18,6 @@ export interface Exercise {
   weight_kg: number
   rest_seconds: number
   completed: boolean
-  created_at: string
 }
 
 export interface ProgressPhoto {
@@ -29,7 +27,6 @@ export interface ProgressPhoto {
   taken_at: string
   weight_kg: number | null
   note: string | null
-  created_at: string
 }
 
 export interface Achievement {
@@ -38,16 +35,6 @@ export interface Achievement {
   key: string
   title: string
   unlocked_at: string
-}
-
-export interface CustomTemplate {
-  id: string
-  user_id: string
-  day_index: number
-  day_label: string
-  muscle_group: string
-  exercises: { name: string; sets: number; reps: number }[]
-  created_at: string
 }
 
 export const WEEK_SPLIT: { day: string; muscle: string; exercises: { name: string; sets: number; reps: number }[] }[] = [
@@ -88,15 +75,15 @@ export const ACHIEVEMENT_DEFS = [
 ]
 
 export function bmi(heightCm: number | null, weightKg: number | null): number | null {
-  if (heightCm == null || weightKg == null || heightCm <= 0 || weightKg <= 0) return null
+  if (!heightCm || !weightKg) return null
   const m = heightCm / 100
   return Math.round((weightKg / (m * m)) * 10) / 10
 }
 
 export function todayISO(): string {
-  return new Date().toLocaleDateString('en-CA')
+  return new Date().toISOString().slice(0, 10)
 }
 
 export function dayName(dateISO: string): string {
-  return new Date(dateISO + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long' })
+  return new Date(dateISO + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' })
 }

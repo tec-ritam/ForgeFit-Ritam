@@ -23,8 +23,6 @@ export default function ProgressPhotos() {
   const [camReady, setCamReady] = useState(false)
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const streamRef = useRef<MediaStream | null>(null)
-  const [dragging, setDragging] = useState(false)
-  const dragCounter = useRef(0)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -35,18 +33,14 @@ export default function ProgressPhotos() {
 
   useEffect(() => { load() }, [load])
 
-  const didAutoCompare = useRef(false)
-
   useEffect(() => {
-    if (photos.length >= 2 && !compare && !didAutoCompare.current) {
+    if (photos.length >= 2 && !compare) {
       setCompare({ before: photos[photos.length - 1], after: photos[0] })
-      didAutoCompare.current = true
     }
   }, [photos, compare])
 
   async function handleFile(file: File) {
     if (!user) return
-    if (!file.type.startsWith('image/')) { toast('Only image files are allowed.', 'error'); return }
     setUploading(true)
     const url = await uploadProgressPhoto(file, user.id)
     if (!url) { toast('Upload failed. Please try again.', 'error'); setUploading(false); return }
@@ -59,57 +53,11 @@ export default function ProgressPhotos() {
     toast('Progress photo uploaded!')
   }
 
-  function handleDragEnter(e: React.DragEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounter.current++
-    if (e.dataTransfer.types.includes('Files')) setDragging(true)
-  }
-
-  function handleDragLeave(e: React.DragEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    dragCounter.current--
-    if (dragCounter.current === 0) setDragging(false)
-  }
-
-  function handleDragOver(e: React.DragEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragging(false)
-    dragCounter.current = 0
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      // Upload the first image file found
-      for (let i = 0; i < files.length; i++) {
-        if (files[i].type.startsWith('image/')) {
-          handleFile(files[i])
-          return
-        }
-      }
-      toast('Please drop an image file (JPG, PNG, etc.)', 'error')
-    }
-  }
-
   async function deletePhoto(id: string, url: string) {
-    const photoToRestore = photos.find(x => x.id === id)
     setPhotos((p) => p.filter((x) => x.id !== id))
-    const { error } = await supabase.from('progress_photos').delete().eq('id', id)
-    if (error) {
-      if (photoToRestore) setPhotos(p => [...p, photoToRestore].sort((a, b) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime()))
-      toast('Failed to delete photo', 'error')
-      return
-    }
-    try {
-      const urlObj = new URL(url)
-      const parts = urlObj.pathname.split('/progress-photos/')
-      if (parts.length > 1) await supabase.storage.from('progress-photos').remove([parts[1]])
-    } catch {}
+    await supabase.from('progress_photos').delete().eq('id', id)
+    const path = url.split('/progress-photos/')[1]
+    if (path) await supabase.storage.from('progress-photos').remove([path])
     toast('Photo deleted')
   }
 
@@ -187,25 +135,7 @@ export default function ProgressPhotos() {
   })
 
   return (
-    <div className="space-y-6 relative" onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
-      {/* Drag-and-drop overlay */}
-      <AnimatePresence>
-        {dragging && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-ink-950/80 backdrop-blur-sm grid place-items-center pointer-events-none"
-          >
-            <motion.div
-              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              className="border-2 border-dashed border-brand-400 rounded-2xl p-12 text-center"
-            >
-              <Upload className="w-12 h-12 text-brand-400 mx-auto mb-3" />
-              <p className="text-white font-display font-bold text-xl">Drop your photo here</p>
-              <p className="text-slate-400 text-sm mt-1">Release to upload your progress photo</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">Progress Photos</h1>
@@ -340,7 +270,7 @@ function CompareView({ photos, compare, setCompare, sliderPos, setSliderPos }: {
           onTouchMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSliderPos(((e.touches[0].clientX - r.left) / r.width) * 100) }}>
           <img src={compare.after.photo_url} alt="After" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-            <img src={compare.before.photo_url} alt="Before" className="absolute inset-0 h-full object-cover" style={{ width: `${100 / (Math.max(sliderPos, 1) / 100)}%`, maxWidth: 'none' }} />
+            <img src={compare.before.photo_url} alt="Before" className="absolute inset-0 h-full object-cover" style={{ width: `${100 / (sliderPos / 100)}%`, maxWidth: 'none' }} />
           </div>
           <div className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg" style={{ left: `${sliderPos}%` }}>
             <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white grid place-items-center text-ink-950 text-xs font-bold">⟷</div>

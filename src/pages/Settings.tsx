@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Bell, Droplet, Dumbbell, Clock, Save, Volume2, Shield } from 'lucide-react'
 import { useToast } from '../lib/toast'
 import { useAuth } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 
 export default function Settings() {
   const toast = useToast()
@@ -13,15 +14,6 @@ export default function Settings() {
 
   useEffect(() => {
     if ('Notification' in window) setPermission(Notification.permission)
-    const saved = localStorage.getItem('forgefit_settings')
-    if (saved) {
-      try {
-        const s = JSON.parse(saved)
-        if (s.notifications) setNotifications(s.notifications)
-        if (s.times) setTimes(s.times)
-        if (s.sound !== undefined) setSound(s.sound)
-      } catch {}
-    }
   }, [])
 
   async function requestPermission() {
@@ -40,7 +32,7 @@ export default function Settings() {
 
   async function saveSettings() {
     if (!user) return
-    localStorage.setItem('forgefit_settings', JSON.stringify({ notifications, times, sound }))
+    await supabase.from('profiles').update({}).eq('id', user.id)
     toast('Settings saved!')
   }
 

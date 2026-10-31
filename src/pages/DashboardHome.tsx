@@ -11,37 +11,23 @@ export default function DashboardHome() {
   const { user, profile } = useAuth()
   const toast = useToast()
   const [workout, setWorkout] = useState<Workout | null>(null)
-  const [customTemplate, setCustomTemplate] = useState<any>(null)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [weekData, setWeekData] = useState<{ day: string; done: number }[]>([])
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [loading, setLoading] = useState(true)
-  const [isFirstVisit, setIsFirstVisit] = useState(false)
-
-  useEffect(() => {
-    if (!localStorage.getItem('forgefit_has_visited')) {
-      setIsFirstVisit(true)
-      localStorage.setItem('forgefit_has_visited', 'true')
-    }
-  }, [])
 
   const today = new Date().toISOString().slice(0, 10)
-  const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1
-  const defaultSplit = WEEK_SPLIT[todayIndex]
+  const todaySplit = WEEK_SPLIT[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]
 
   const loadToday = useCallback(async () => {
     if (!user) return
-    if (profile?.active_plan_type === 'custom') {
-      const { data } = await supabase.from('custom_templates').select('*').eq('user_id', user.id).eq('day_index', todayIndex).maybeSingle()
-      setCustomTemplate(data)
-    }
     const { data: w } = await supabase.from('workouts').select('*').eq('user_id', user.id).eq('date', today).maybeSingle()
     if (w) {
       setWorkout(w as Workout)
       const { data: ex } = await supabase.from('exercises').select('*').eq('workout_id', w.id)
       setExercises((ex ?? []) as Exercise[])
     }
-  }, [user, today, profile?.active_plan_type, todayIndex])
+  }, [user, today])
 
   const loadWeek = useCallback(async () => {
     if (!user) return
@@ -69,15 +55,10 @@ export default function DashboardHome() {
     Promise.all([loadToday(), loadWeek(), loadAchievements()]).finally(() => setLoading(false))
   }, [loadToday, loadWeek, loadAchievements])
 
-  const todaySplit = profile?.active_plan_type === 'custom'
-    ? (customTemplate || { day_label: 'Custom Day', muscle_group: 'Rest / Custom', exercises: [] })
-    : defaultSplit
-  const dispMuscle = todaySplit.muscle_group || todaySplit.muscle
-
   async function startWorkout() {
     if (!user || workout) return
     const { data, error } = await supabase.from('workouts').insert({
-      user_id: user.id, date: today, day_label: todaySplit.day_label || todaySplit.day, muscle_group: dispMuscle, completed: false,
+      user_id: user.id, date: today, day_label: todaySplit.day, muscle_group: todaySplit.muscle, completed: false,
     }).select('*').single()
     if (error) { toast('Could not start workout', 'error'); return }
     setWorkout(data as Workout)
@@ -94,25 +75,15 @@ export default function DashboardHome() {
   }
 
   async function toggleExercise(id: string, completed: boolean) {
+    setExercises((e) => e.map((x) => x.id === id ? { ...x, completed } : x))
     await supabase.from('exercises').update({ completed }).eq('id', id)
-    
-    let isAllComplete = false
-    setExercises((prev) => {
-      const next = prev.map((x) => x.id === id ? { ...x, completed } : x)
-      isAllComplete = next.length > 0 && next.every((x) => x.completed)
-      return next
-    })
-
-    setWorkout((prevWorkout) => {
-      if (isAllComplete && prevWorkout && !prevWorkout.completed) {
-        supabase.from('workouts').update({ completed: true }).eq('id', prevWorkout.id).then(() => {
-          unlockAchievement('workout_done')
-          toast('Workout complete! Great work. ⚡', 'success')
-        })
-        return { ...prevWorkout, completed: true }
-      }
-      return prevWorkout
-    })
+    const all = exercises.map((x) => x.id === id ? { ...x, completed } : x)
+    if (all.length > 0 && all.every((x) => x.completed) && workout && !workout.completed) {
+      await supabase.from('workouts').update({ completed: true }).eq('id', workout.id)
+      setWorkout({ ...workout, completed: true })
+      await unlockAchievement('workout_done')
+      toast('Workout complete! Great work. ⚡', 'success')
+    }
   }
 
   async function unlockAchievement(key: string) {
@@ -135,8 +106,8 @@ export default function DashboardHome() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">{isFirstVisit ? 'Welcome, ' : 'Welcome back, '}{profile?.full_name?.split(' ')[0] || 'Athlete'}</h1>
-          <p className="text-slate-400 text-sm mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · {dispMuscle}</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">Welcome back, {profile?.full_name?.split(' ')[0] || 'Athlete'}</h1>
+          <p className="text-slate-400 text-sm mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · {todaySplit.muscle}</p>
         </div>
         <div className="flex items-center gap-2 chip bg-brand-400/10 text-brand-300 border border-brand-400/20">
           <Flame className="w-4 h-4" /> {profile?.streak ?? 0} day streak
@@ -161,14 +132,14 @@ export default function DashboardHome() {
           {!workout ? (
             <div className="text-center py-10">
               <Dumbbell className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400 mb-4">No workout logged yet. Ready to train {dispMuscle}?</p>
+              <p className="text-slate-400 mb-4">No workout logged yet. Ready to train {todaySplit.muscle}?</p>
               <button onClick={startWorkout} className="btn-primary"><Plus className="w-4 h-4" /> Start Workout</button>
             </div>
           ) : exercises.length === 0 ? (
             <div>
-              <p className="text-slate-400 text-sm mb-3">Add exercises from today's {dispMuscle} template:</p>
+              <p className="text-slate-400 text-sm mb-3">Add exercises from today's {todaySplit.muscle} split:</p>
               <div className="flex flex-wrap gap-2">
-                {todaySplit.exercises.map((ex: any) => (
+                {todaySplit.exercises.map((ex) => (
                   <button key={ex.name} onClick={() => addExercise(ex.name)} className="chip glass hover:border-brand-400/30 hover:text-brand-300 transition">
                     <Plus className="w-3 h-3" /> {ex.name}
                   </button>
@@ -192,7 +163,7 @@ export default function DashboardHome() {
                 </motion.div>
               ))}
               <button onClick={() => {
-                const remaining = todaySplit.exercises.filter((e: any) => !exercises.some((x) => x.name === e.name))
+                const remaining = todaySplit.exercises.filter((e) => !exercises.some((x) => x.name === e.name))
                 if (remaining[0]) addExercise(remaining[0].name)
               }} className="btn-ghost text-sm py-2 mt-2"><Plus className="w-4 h-4" /> Add exercise</button>
             </div>

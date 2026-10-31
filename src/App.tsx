@@ -1,24 +1,18 @@
-import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './lib/auth'
-
-const Landing = lazy(() => import('./pages/Landing'))
-const Login = lazy(() => import('./pages/Login'))
-const Register = lazy(() => import('./pages/Register'))
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
-const DashboardLayout = lazy(() => import('./components/DashboardLayout'))
-const DashboardHome = lazy(() => import('./pages/DashboardHome'))
-const WorkoutPlanner = lazy(() => import('./pages/WorkoutPlanner'))
-const ProgressPhotos = lazy(() => import('./pages/ProgressPhotos'))
-const Analytics = lazy(() => import('./pages/Analytics'))
-const AiAnalysis = lazy(() => import('./pages/AiAnalysis'))
-const Profile = lazy(() => import('./pages/Profile'))
-const Settings = lazy(() => import('./pages/Settings'))
-const Pricing = lazy(() => import('./pages/Pricing'))
-
-function Fallback() {
-  return <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm">Loading...</div>
-}
+import Landing from './pages/Landing'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import DashboardLayout from './components/DashboardLayout'
+import DashboardHome from './pages/DashboardHome'
+import WorkoutPlanner from './pages/WorkoutPlanner'
+import ProgressPhotos from './pages/ProgressPhotos'
+import Analytics from './pages/Analytics'
+import AiAnalysis from './pages/AiAnalysis'
+import Profile from './pages/Profile'
+import Settings from './pages/Settings'
+import Pricing from './pages/Pricing'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -29,24 +23,22 @@ function Protected({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Suspense fallback={<Fallback />}>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/app" element={<Protected><DashboardLayout /></Protected>}>
-          <Route index element={<DashboardHome />} />
-          <Route path="planner" element={<WorkoutPlanner />} />
-          <Route path="photos" element={<ProgressPhotos />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="ai-analysis" element={<AiAnalysis />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/app" element={<Protected><DashboardLayout /></Protected>}>
+        <Route index element={<DashboardHome />} />
+        <Route path="planner" element={<WorkoutPlanner />} />
+        <Route path="photos" element={<ProgressPhotos />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="ai-analysis" element={<AiAnalysis />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }

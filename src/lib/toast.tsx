@@ -1,31 +1,18 @@
-import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info'
-interface Toast { id: string; message: string; type: ToastType }
+interface Toast { id: number; message: string; type: ToastType }
 
 const Ctx = createContext<{ toast: (msg: string, type?: ToastType) => void } | undefined>(undefined)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
-  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
-
   const toast = useCallback((message: string, type: ToastType = 'success') => {
-    const id = crypto.randomUUID()
+    const id = Date.now() + Math.random()
     setToasts((t) => [...t, { id, message, type }])
-    const timeout = setTimeout(() => {
-      setToasts((t) => t.filter((x) => x.id !== id))
-      timeoutsRef.current.delete(timeout)
-    }, 4000)
-    timeoutsRef.current.add(timeout)
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      timeoutsRef.current.forEach(clearTimeout)
-      timeoutsRef.current.clear()
-    }
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000)
   }, [])
 
   const icons = {

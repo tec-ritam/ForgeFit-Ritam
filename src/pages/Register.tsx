@@ -18,13 +18,9 @@ export default function Register() {
     e.preventDefault()
     if (password.length < 6) { toast('Password must be at least 6 characters', 'error'); return }
     setLoading(true)
-    const result = await signUp(email, password, name)
+    const { error } = await signUp(email, password, name)
     setLoading(false)
-    if (result.error) toast(result.error, 'error')
-    else if ((result as any).needsConfirmation) {
-      toast('Account created! Please check your email to confirm, then log in.', 'success')
-      nav('/login')
-    }
+    if (error) toast(error, 'error')
     else { toast('Account created! Welcome to ForgeFit.'); nav('/app') }
   }
 

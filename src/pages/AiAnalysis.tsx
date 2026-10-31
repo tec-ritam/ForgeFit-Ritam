@@ -70,32 +70,31 @@ export default function AiAnalysis() {
     setError(null)
 
     try {
-      // PROTOTYPE MODE: Mocking the AI response to avoid OpenAI API costs
-      await new Promise(resolve => setTimeout(resolve, 3500)) // Simulate 3.5s AI processing time
-      
-      const mockAnalysis: AnalysisResult = {
-        physiqueScore: 8.2,
-        bodyFatEstimate: 14.5,
-        bodyFatTrend: 'decreasing',
-        muscleDefinition: 75,
-        shoulderWidth: 80,
-        chestDevelopment: 70,
-        armGrowth: 85,
-        waistReduction: 60,
-        postureImprovement: 90,
-        symmetry: 85,
-        estimatedMuscleMassKg: 35,
-        estimatedHeightCm: 180,
-        suggestions: [
-          'Focus on upper chest exercises (incline dumbbell presses) to improve proportions.',
-          'Great shoulder width development compared to last month.',
-          'Consider incorporating more core stability work to improve overall symmetry.'
-        ],
-        report: 'Based on the visual analysis, your physique shows excellent progress. The shoulder-to-waist ratio is improving, creating a strong V-taper. Muscle definition in the arms is prominent, suggesting a drop in overall body fat. To balance your physique, prioritize upper chest and lat width in your upcoming training cycles.'
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-physique-analysis`
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ photoUrl: selected.photo_url }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || data.error) {
+        if (data.error === 'OPENAI_API_KEY_NOT_CONFIGURED') {
+          setError('The AI analysis feature needs an OpenAI API key to be configured. This is a server-side secret — once it is added, the analysis will work automatically.')
+        } else {
+          setError(data.message || 'Analysis failed. Please try again.')
+        }
+        setAnalyzing(false)
+        return
       }
 
-      setResult(mockAnalysis)
-      toast('AI analysis complete! (Prototype Mode)')
+      const a: AnalysisResult = data.analysis
+      setResult(a)
+      toast('AI analysis complete!')
 
       // Save to database
       if (user) {
@@ -103,24 +102,23 @@ export default function AiAnalysis() {
           user_id: user.id,
           photo_id: selected.id,
           photo_url: selected.photo_url,
-          physique_score: mockAnalysis.physiqueScore,
-          body_fat_estimate: mockAnalysis.bodyFatEstimate,
-          muscle_definition: mockAnalysis.muscleDefinition,
-          shoulder_width: mockAnalysis.shoulderWidth,
-          chest_development: mockAnalysis.chestDevelopment,
-          arm_growth: mockAnalysis.armGrowth,
-          waist_reduction: mockAnalysis.waistReduction,
-          posture_improvement: mockAnalysis.postureImprovement,
-          symmetry: mockAnalysis.symmetry,
-          body_fat_trend: mockAnalysis.bodyFatTrend,
-          suggestions: mockAnalysis.suggestions,
-          report: mockAnalysis.report,
-          raw_response: 'MOCK_DATA',
+          physique_score: a.physiqueScore,
+          body_fat_estimate: a.bodyFatEstimate,
+          muscle_definition: a.muscleDefinition,
+          shoulder_width: a.shoulderWidth,
+          chest_development: a.chestDevelopment,
+          arm_growth: a.armGrowth,
+          waist_reduction: a.waistReduction,
+          posture_improvement: a.postureImprovement,
+          symmetry: a.symmetry,
+          body_fat_trend: a.bodyFatTrend,
+          suggestions: a.suggestions,
+          report: a.report,
         })
         load() // refresh history
       }
     } catch {
-      setError('Could not complete the mock analysis. Please try again.')
+      setError('Could not reach the AI analysis service. Please check your connection and try again.')
     }
     setAnalyzing(false)
   }

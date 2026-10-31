@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { User, Ruler, Weight, Calendar, Target, Award, Flame, Save, Camera } from 'lucide-react'
+import { User, Ruler, Weight, Calendar, Target, Award, Flame, Save } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { useToast } from '../lib/toast'
 import { supabase } from '../lib/supabase'
@@ -9,13 +9,10 @@ import { bmi, ACHIEVEMENT_DEFS } from '../lib/types'
 export default function Profile() {
   const { user, profile, refreshProfile } = useAuth()
   const toast = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  
   const [form, setForm] = useState({
     full_name: '', height_cm: '', weight_kg: '', age: '', goal: '', experience: '',
   })
   const [saving, setSaving] = useState(false)
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [achievements, setAchievements] = useState<any[]>([])
 
   useEffect(() => {
@@ -51,38 +48,6 @@ export default function Profile() {
     else { toast('Profile updated!'); refreshProfile() }
   }
 
-  async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !user) return
-    
-    try {
-      setUploadingAvatar(true)
-      
-      // Upload to storage bucket
-      const ext = file.name.split('.').pop()
-      const path = `${user.id}/${Date.now()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file)
-      
-      if (uploadError) throw uploadError
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-
-      // Update profile
-      const { error: dbError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-      if (dbError) throw dbError
-
-      toast('Profile photo updated!', 'success')
-      refreshProfile()
-    } catch (error: any) {
-      toast(error.message || 'Error uploading photo', 'error')
-    } finally {
-      setUploadingAvatar(false)
-      // Clear input so same file can be selected again
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
   const userBmi = bmi(profile?.height_cm ? Number(profile.height_cm) : null, profile?.weight_kg ? Number(profile.weight_kg) : null)
 
   return (
@@ -94,29 +59,9 @@ export default function Profile() {
 
       {/* Profile header */}
       <div className="card p-6 flex flex-col sm:flex-row items-center gap-5">
-        <div 
-          onClick={() => !uploadingAvatar && fileInputRef.current?.click()}
-          className={`w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-400 to-accent-400 grid place-items-center text-ink-950 font-bold text-3xl relative group overflow-hidden ${uploadingAvatar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-        >
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            (profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase()
-          )}
-          
-          <div className="absolute inset-0 bg-ink-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white backdrop-blur-sm">
-            <Camera className="w-6 h-6" />
-          </div>
-          
-          {uploadingAvatar && (
-            <div className="absolute inset-0 bg-ink-950/80 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
-          
-          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={uploadAvatar} />
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-400 to-accent-400 grid place-items-center text-ink-950 font-bold text-3xl">
+          {(profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase()}
         </div>
-        
         <div className="flex-1 text-center sm:text-left">
           <h2 className="font-display text-xl font-bold text-white">{profile?.full_name || 'Athlete'}</h2>
           <p className="text-slate-400 text-sm">{profile?.email}</p>
